@@ -1,6 +1,7 @@
 import { fetchCustomers, fetchInvoiceById } from "@/app/lib/data";
 import Breadcrumbs from "@/app/ui/invoices/breadcrumbs";
 import Form from "@/app/ui/invoices/edit-form";
+import { notFound } from "next/navigation";
 
 export default async function Page(props: {params: Promise<{ id: string }>}) {
     const params = await props.params;  // Params from action page (Link href)
@@ -9,6 +10,13 @@ export default async function Page(props: {params: Promise<{ id: string }>}) {
         fetchInvoiceById(id),
         fetchCustomers()
     ]);
+
+    console.log(invoice);
+
+
+    if (!invoice) {
+        notFound();   // Will show the view/UI -> from file 'not-found.tsx'  
+    }
     
     return (
         <main>
