@@ -15,7 +15,7 @@ export default async function Page(props: {params: Promise<{ id: string }>}) {
 
 
     if (!invoice) {
-        notFound();   // Will show the view/UI -> from file 'not-found.tsx'  
+        notFound();   // Will show the view/UI from the file 'not-found.tsx'  
     }
     
     return (

@@ -14,7 +14,7 @@ import { useActionState } from 'react';
 
 export default function Form({ customers }: { customers: CustomerField[] }) {
     // Update initial state to match the new State type
-    const initialState: State = { message: null, errors: {}, formData: null };
+    const initialState: State = { message: null, errors: {}, formData: {} };
     const [state, formAction] = useActionState(createInvoice, initialState);
 
     return (
