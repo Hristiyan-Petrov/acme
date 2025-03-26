@@ -32,12 +32,12 @@ export type State = {
         status?: string[];
     };
     message?: string | null;
-    // Add field to hold submitted data on error
     formData?: {
         customerId?: string;
-        amount?: string; // Keep as string as it comes from FormData
+        amount?: string;
         status?: string;
-    } | null; // Make it nullable for the initial state
+    } | null;
+    success?: boolean;
 };
 
 export async function createInvoice(prevState: State, formData: FormData): Promise<State> { // Add Promise<State> for clarity
@@ -62,7 +62,8 @@ export async function createInvoice(prevState: State, formData: FormData): Promi
                 customerId: rawFormData.customerId?.toString(),
                 amount: rawFormData.amount?.toString(),
                 status: rawFormData.status?.toString(),
-            }
+            },
+            success: false,
         }
     }
 
@@ -79,12 +80,21 @@ export async function createInvoice(prevState: State, formData: FormData): Promi
     `;
     } catch (error) {
         return {
-            message: 'Database Error: Failed to Create Invoice.'
+            message: 'Database Error: Failed to Create Invoice.',
+            success: false,
         }
     }
 
     revalidatePath('/dashboard/invoices'); // Update route view (renew cache / prerender)
-    redirect('/dashboard/invoices');
+
+    return {
+        message: 'Invoice created successfully!',
+        success: true,
+        errors: {}, // Clear any previous errors
+        formData: null // Clear previous form data
+    };
+
+    // redirect('/dashboard/invoices');
 };
 
 export async function updateInvoice(
@@ -105,11 +115,12 @@ export async function updateInvoice(
             errors: validatedFields.error.flatten().fieldErrors,
             message: 'Missing or Invalid Fields. Failed to Create Invoice.',
             // Include the raw form data (as strings)
-            formData: {
+            formData:  {
                 customerId: rawFormData.customerId?.toString(),
                 amount: rawFormData.amount?.toString(),
                 status: rawFormData.status?.toString(),
-            }
+            },
+            success: false, // Explicitly false on error
         }
     }
 
@@ -124,17 +135,31 @@ export async function updateInvoice(
         `;
     } catch (error) {
         return {
-            message: 'Database Error: Failed to Update Invoice.'
+            message: 'Database Error: Failed to Update Invoice.',
+            success: false,
         }
     }
 
     revalidatePath('/dashboard/invoices');   // Update route view (renew cache / prerender)
-    redirect('/dashboard/invoices');
+
+    return {
+        message: 'Invoice updated successfully!',
+        success: true,
+        errors: {}, // Clear any previous errors
+        formData: null // Clear previous form data
+    };
+
+    // redirect('/dashboard/invoices');
 };
 
-export async function deleteInvoice(id: string) {
-    await sql`
-            DELETE FROM invoices WHERE id =${id}
-        `;
-    revalidatePath('/dashboard/invoices');   // Update route view (renew cache / prerender)
-};
+export async function deleteInvoice(id: string): Promise<{ message: string, success: boolean }> {
+    try {
+        await sql`DELETE FROM invoices WHERE id =${id}`;
+        revalidatePath('/dashboard/invoices');
+        return { message: 'Invoice Deleted Successfully.', success: true };
+
+    } catch (error) {
+        console.error('Database Error:', error);
+        return { message: 'Database Error: Failed to Delete Invoice.', success: false };
+    }
+}
