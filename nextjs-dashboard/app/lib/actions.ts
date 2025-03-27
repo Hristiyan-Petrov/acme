@@ -4,6 +4,8 @@ import { z } from 'zod';
 import postgres from 'postgres';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { signIn } from '@/auth';
+import { AuthError } from 'next-auth';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
@@ -21,9 +23,11 @@ const FormSchema = z.object({
     date: z.string()
 });
 
+
+// INVOICES ACTIONS
+
 const CreateInvoice = FormSchema.omit({ id: true, date: true });
 const UpdateInvoice = FormSchema.omit({ id: true, date: true });
-
 
 export type State = {
     errors?: {
@@ -164,5 +168,40 @@ export async function deleteInvoice(id: string, prevState: State, formData: Form
     } catch (error) {
         console.error('Database Error:', error);
         return { message: 'Database Error: Failed to Delete Invoice.', success: false };
+    }
+}
+
+
+// AUTH ACTIONS
+
+export type AuthErrorMessage = string | undefined;
+
+export async function authenticate(
+    prevState: AuthErrorMessage,
+    formData: FormData
+): Promise<AuthErrorMessage> {
+    try {
+        const redirectTo = formData.get('redirectTo')?.toString();
+        await signIn('credentials', formData, {
+            redirectTo: redirectTo || '/dashboard'
+        });
+        return undefined;
+    } catch (error) {
+        if (error instanceof AuthError) {
+            switch (error.type) {
+                case 'CredentialsSignin':
+                    return 'Invalid credentials.';
+                // case 'CallbackRouteError':
+                //     return `Callback Error: ${error.cause?.err?.message || 'Unknown callback error'}`;
+                default:
+                    console.error(`Caught specific AuthError type: ${error.type}`, error.cause);
+                    throw error;
+            }
+        }
+        // Re-throw other errors that are not AuthError
+        console.error("Non-Auth Error during authentication:", error);
+        // return 'An unexpected error occurred.';
+        // Or re-throw if you have global error handling: throw error;
+        throw error;
     }
 }
