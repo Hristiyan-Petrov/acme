@@ -153,6 +153,7 @@ export async function updateInvoice(
 };
 
 export async function deleteInvoice(id: string, prevState: State, formData: FormData): Promise<State> {
+    console.log(prevState, formData);
     if (!id) return { message: 'Missing Invoice ID.', success: false };
 
     try {

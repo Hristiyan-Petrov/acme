@@ -1,6 +1,6 @@
 'use client'
 
-import { deleteInvoice, State } from '@/app/lib/actions';
+import { deleteInvoice } from '@/app/lib/actions';
 import { ArrowPathIcon, PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
 import Link from 'next/link';
