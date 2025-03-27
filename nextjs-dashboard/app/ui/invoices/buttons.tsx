@@ -1,6 +1,11 @@
-import { deleteInvoice } from '@/app/lib/actions';
-import { PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+'use client'
+
+import { deleteInvoice, State } from '@/app/lib/actions';
+import { ArrowPathIcon, PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import clsx from 'clsx';
 import Link from 'next/link';
+import { useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 
 export function CreateInvoice() {
     return (
@@ -23,16 +28,47 @@ export function UpdateInvoice({ id }: { id: string }) {
             <PencilIcon className="w-5" />
         </Link>
     );
-}
+};
 
 export function DeleteInvoice({ id }: { id: string }) {
-    const deleteInvoiceWithId = deleteInvoice.bind(null, id)
+    const initialState = { message: null, errors: {}, success: false };
+
+     // Note: The action expects prevState and formData. It effectively creates a function like: (prevState, formData) => deleteInvoice(id, prevState, formData)
+    const deleteInvoiceWithId = deleteInvoice.bind(null, id);
+    const [state, formAction] = useActionState(deleteInvoiceWithId, initialState);
+
     return (
-        <form action={deleteInvoiceWithId}>
-            <button type="submit" className="rounded-md border p-2 hover:bg-gray-100">
-                <span className="sr-only">Delete</span>
-                <TrashIcon className="w-5" />
-            </button>
+        <form action={formAction} aria-live="polite">
+            <DeleteButton />
+            {state?.message && !state.success && (
+                <p className="mt-1 text-xs text-red-500" role="status">
+                    {state.message}
+                </p>
+            )}
         </form>
+    );
+};
+
+function DeleteButton() {
+    const { pending } = useFormStatus();
+
+    return (
+         <button
+            type="submit"
+            className={clsx(
+                "rounded-md border p-2 hover:bg-gray-100",
+                { "bg-gray-100 opacity-50 cursor-not-allowed": pending } // Style when pending
+            )}
+            disabled={pending} // Disable button when pending
+            aria-disabled={pending} // Accessibility
+        >
+            <span className="sr-only">Delete</span>
+            {/* Show spinner when pending, otherwise trash icon */}
+            {pending ? (
+                 <ArrowPathIcon className="w-5 animate-spin" />
+             ) : (
+                 <TrashIcon className="w-5" />
+             )}
+        </button>
     );
 }
