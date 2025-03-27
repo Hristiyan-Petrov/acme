@@ -101,7 +101,7 @@ export async function updateInvoice(
     id: string,
     prevState: State,
     formData: FormData
-) {
+): Promise<State> {
     const rawFormData = {
         customerId: formData.get('customerId'),
         amount: formData.get('amount'),
