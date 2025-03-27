@@ -90,7 +90,7 @@ export async function createInvoice(prevState: State, formData: FormData): Promi
     }
 
     revalidatePath('/dashboard/invoices'); // Update route view (renew cache / prerender)
-    redirect('/dashboard/invoices');
+    // redirect('/dashboard/invoices');
 
     return {
         message: 'Invoice created successfully!',
