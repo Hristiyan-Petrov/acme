@@ -80,7 +80,7 @@ export async function createInvoice(prevState: State, formData: FormData): Promi
     `;
     } catch (error) {
         return {
-            message: 'Database Error: Failed to Create Invoice.',
+            message: 'Database Error: Failed to Create Invoice.' + `\n ${error}`,
             success: false,
         }
     }
@@ -115,7 +115,7 @@ export async function updateInvoice(
             errors: validatedFields.error.flatten().fieldErrors,
             message: 'Missing or Invalid Fields. Failed to Create Invoice.',
             // Include the raw form data (as strings)
-            formData:  {
+            formData: {
                 customerId: rawFormData.customerId?.toString(),
                 amount: rawFormData.amount?.toString(),
                 status: rawFormData.status?.toString(),
@@ -135,7 +135,7 @@ export async function updateInvoice(
         `;
     } catch (error) {
         return {
-            message: 'Database Error: Failed to Update Invoice.',
+            message: 'Database Error: Failed to Update Invoice.' + `\n ${error}`,
             success: false,
         }
     }
