@@ -14,8 +14,8 @@ import { useActionState, useState } from 'react';
 import { authenticate, AuthErrorMessage } from '../lib/actions';
 
 export default function LoginForm() {
-    const searhParams = useSearchParams();
-    const callbackUrl = searhParams.get('callbackUrl') || '/dashboard';
+    // const searhParams = useSearchParams();
+    // const callbackUrl = searhParams.get('callbackUrl') || '/dashboard';
     const [errorMessage, formAction, isPending] = useActionState<AuthErrorMessage | undefined, FormData>(authenticate, undefined);
     const [email, setEmail] = useState('');
 

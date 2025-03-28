@@ -1,11 +1,10 @@
 'use client'
 
 // import { deleteInvoice } from '@/app/lib/actions';
-import { ArrowPathIcon, PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
-import clsx from 'clsx';
+import { PlusIcon } from '@heroicons/react/24/outline';
+
 import Link from 'next/link';
-import { useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
+
 
 export function CreateCustomer() {
     return (

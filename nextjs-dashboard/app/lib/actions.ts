@@ -178,7 +178,7 @@ export async function deleteInvoice(id: string, prevState: InvoiceState, formDat
 
 const CustomerFormSchema = z.object({
     id: z.string(),
-    name: z.string().trim().min(1, { message: 'Please enter a customer name.' }),
+    name: z.string().trim().min(3, { message: 'Please enter a customer name.' }),
     email: z.string().email({ message: 'Please enter a valid email address.' }).trim(),
 });
 
@@ -258,11 +258,11 @@ export async function createCustomer(prevState: CustomerState, formData: FormDat
 
     if (!validatedFields.success) {
         // Combine file error (if any) with Zod errors
-        const errors = {
-            ...prevState.errors, // Carry over potential file error? No, generate fresh.
-            ...(prevState.errors?.imageFile ? { imageFile: prevState.errors.imageFile } : {}), // Carry file error if needed, or better generate fresh? Let's do fresh below
-            ...validatedFields.error.flatten().fieldErrors,
-        };
+        // const errors = {
+        //     ...prevState.errors, // Carry over potential file error? No, generate fresh.
+        //     ...(prevState.errors?.imageFile ? { imageFile: prevState.errors.imageFile } : {}), // Carry file error if needed, or better generate fresh? Let's do fresh below
+        //     ...validatedFields.error.flatten().fieldErrors,
+        // };
         // If file validation failed above, this won't run, handle combination carefully if needed.
         // Re-check file validation if you want errors combined
         const fileErrorState = { // Re-run basic file presence check to combine errors
