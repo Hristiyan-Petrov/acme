@@ -1,45 +1,43 @@
 // lib/server-utils.ts
-import path from 'path';
-import fs from 'fs/promises'; // Use promises version for async/await
+// NO LONGER NEED path or fs here for saving! Keep 'server-only'
 import 'server-only';
-
-// --- File Handling Configuration ---
-const UPLOAD_DIR = path.join(process.cwd(), 'public', 'customers'); // Base upload directory
+// Import the Vercel Blob client-side 'put' function
+import { put } from '@vercel/blob';
 
 /**
- * Saves the validated image file to the public/customers directory.
- * Returns an object with success status and either the web-accessible path or error messages.
- * SERVER-ONLY: This function uses 'fs' and 'path' and should only be called from server-side code (Server Actions, API routes, etc.).
+ * Uploads the customer image file to Vercel Blob storage.
+ * Returns an object with success status and either the public blob URL or error messages.
+ * SERVER-ONLY: This interacts with Vercel Blob storage.
  */
 export async function saveCustomerImage(
     imageFile: File // Expect a validated File object
-): Promise<{ success: true; path: string } | { success: false; errors: string[] }> {
-   // Ensure 'server-only' prevents client-side import during build
+): Promise<{ success: true; url: string } | { success: false; errors: string[] }> {
+    // Ensure 'server-only' prevents client-side import during build
     try {
-        // --- Generate Unique Filename ---
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const originalName = imageFile.name.replace(/\s+/g, '_');
-        const extension = path.extname(originalName);
-        const baseName = path.basename(originalName, extension);
-        const sanitizedBaseName = baseName.replace(/[^a-zA-Z0-9_-]/g, '');
-        const filename = `${sanitizedBaseName}-${uniqueSuffix}${extension}`;
+        // Generate a unique filename if desired, or let Vercel Blob handle it partly.
+        // Adding a path prefix is good practice.
+        const filename = `customers/${Date.now()}-${imageFile.name.replace(/\s+/g, '_')}`;
 
-        // --- Prepare Save Path ---
-        const filePath = path.join(UPLOAD_DIR, filename);
+        // Upload the file to Vercel Blob
+        const blob = await put(
+            filename, // The path/filename within your blob store
+            imageFile,
+            {
+                access: 'public', // Make the blob publicly accessible
+                // Optional: Add caching headers if needed
+                // cacheControlMaxAge: 3600,
+            }
+        );
 
-        // --- Ensure Directory Exists ---
-        await fs.mkdir(UPLOAD_DIR, { recursive: true });
-
-        // --- Read and Write File ---
-        const buffer = Buffer.from(await imageFile.arrayBuffer());
-        await fs.writeFile(filePath, buffer);
-
-        // --- Return Web-Accessible Path ---
-        const savedImagePath = `/customers/${filename}`; // Path relative to /public
-        return { success: true, path: savedImagePath };
+        // 'put' returns an object with the public URL
+        return { success: true, url: blob.url };
 
     } catch (error) {
-        console.error('Failed to save image:', error);
+        console.error('Failed to upload image to Vercel Blob:', error);
+        // Provide a more user-friendly error
+        if (error instanceof Error && error.message.includes('size')) {
+             return { success: false, errors: ['File size limit exceeded for storage.'] };
+        }
         return {
             success: false,
             errors: ['Could not save the uploaded image. Please try again.'],
@@ -47,4 +45,7 @@ export async function saveCustomerImage(
     }
 }
 
-// Add any other functions from utils.ts that *require* Node.js modules (like path if used extensively)
+// --- Keep validation logic separate if needed, or integrate basic checks ---
+// You might still want MAX_FILE_SIZE_MB and ALLOWED_MIME_TYPES defined
+// elsewhere (e.g., utils.ts) for client-side feedback or pre-validation,
+// even though Vercel Blob might have its own limits.

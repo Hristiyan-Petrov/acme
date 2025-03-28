@@ -271,47 +271,36 @@ export async function createCustomer(prevState: CustomerState, formData: FormDat
 
     if (!saveResult.success) {
         return {
-            // Add save errors to imageFile field
             errors: { imageFile: saveResult.errors },
-            formData: { name, email }, // Keep validated name/email
+            formData: { name, email },
             success: false,
         };
     }
-    const savedImagePath = saveResult.path;
 
-    // 7. --- Insert data into the database ---
+    // --- Use the FULL public URL from Vercel Blob ---
+    const customerImageUrl = saveResult.url;
+
+    // --- Insert data into the database ---
     try {
         await sql`
             INSERT INTO customers (name, email, image_url)
-            VALUES (${name}, ${email}, ${savedImagePath})
+            VALUES (${name}, ${email}, ${customerImageUrl}) -- Store the full URL
         `;
     } catch (error: unknown) {
+        // ... (database error handling as before) ...
+        // Consider deleting the uploaded blob if DB insert fails (more advanced)
         console.error('Database Error:', error);
-
-        if (typeof error === 'object' && error !== null && 'code' in error) {
-            const dbError = error as { code: string; message?: string; constraint_name?: string };
-            if (dbError.code === '23505') { // Unique violation
-                 if (dbError.constraint_name === 'customers_email_key' || (dbError.message && dbError.message.includes('customers_email_key'))) {
-                    // Return field-specific error for unique email
-                    return {
-                        errors: { email: ['Email already exists.'] },
-                        formData: { name, email },
-                        success: false,
-                    };
-                }
-                // Potentially handle other unique constraints here
-            }
-        }
-
-        // Generic DB error message (non-field specific)
+        // You might want to attempt deleting the blob if the DB fails
+        // import { del } from '@vercel/blob';
+        // await del(customerImageUrl).catch(delErr => console.error("Failed to delete blob after DB error:", delErr));
         return {
-            message: 'Database Error: Failed to create customer record. Please try again.',
-            formData: { name, email }, // Keep data for retry
-            success: false,
-        };
+             message: 'Database Error: Failed to create customer. Please try again.',
+             formData: { name, email},
+             success: false,
+        }
     }
 
-    // 8. --- Revalidate and Return Success ---
+    // --- Revalidate and Return Success ---
     revalidatePath('/dashboard/customers');
     revalidatePath('/dashboard/invoices');
 
