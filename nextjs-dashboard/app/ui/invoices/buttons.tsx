@@ -23,7 +23,7 @@ export function UpdateInvoice({ id }: { id: string }) {
     return (
         <Link
             href={`/dashboard/invoices/${id}/edit`}
-            className="rounded-md border p-2 hover:bg-gray-100"
+            className="rounded-md border p-2 hover:bg-blue-300"
         >
             <PencilIcon className="w-5" />
         </Link>
@@ -56,7 +56,7 @@ function DeleteButton() {
          <button
             type="submit"
             className={clsx(
-                "rounded-md border p-2 hover:bg-gray-100",
+                "rounded-md border p-2 hover:bg-red-400",
                 { "bg-gray-100 opacity-50 cursor-not-allowed": pending } // Style when pending
             )}
             disabled={pending} // Disable button when pending
