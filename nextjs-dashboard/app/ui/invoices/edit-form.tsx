@@ -10,7 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { Button } from '@/app/ui/button';
-import { State, updateInvoice } from '@/app/lib/actions';
+import { InvoiceState, updateInvoice } from '@/app/lib/actions';
 // Import necessary hooks
 import { useActionState, useEffect, useState } // Import useState if needed elsewhere, not strictly needed here anymore
     from 'react'; // Import React for Fragment if needed
@@ -24,7 +24,7 @@ export default function EditInvoiceForm({
     invoice: InvoiceForm;
     customers: CustomerField[];
 }) {
-    const initialState: State = { message: null, errors: {}, formData: null, success: false };
+    const initialState: InvoiceState = { message: null, errors: {}, formData: null, success: false };
     const updateInvoiceWithId = updateInvoice.bind(null, invoice.id);
     const [state, formAction] = useActionState(updateInvoiceWithId, initialState);
     const router = useRouter();

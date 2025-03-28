@@ -9,14 +9,14 @@ import {
     UserCircleIcon,
 } from '@heroicons/react/24/outline';
 import { Button } from '@/app/ui/button';
-import { createInvoice, State } from '@/app/lib/actions';
+import { createInvoice, InvoiceState } from '@/app/lib/actions';
 import { useActionState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { SuccessFeedback } from '../success-feedback';
 
 export default function Form({ customers }: { customers: CustomerField[] }) {
     // Update initial state to match the new State type
-    const initialState: State = { message: null, errors: {}, formData: {} };
+    const initialState: InvoiceState = { message: null, errors: {}, formData: {} };
     const [state, formAction] = useActionState(createInvoice, initialState);
     const router = useRouter();
 
