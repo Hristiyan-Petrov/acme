@@ -6,8 +6,6 @@ import { revalidatePath } from 'next/cache';
 // import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
-import path from 'path';
-import fs from 'fs/promises';
 import { saveCustomerImage, validateImageFile } from './utils';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
