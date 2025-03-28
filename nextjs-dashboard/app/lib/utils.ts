@@ -1,5 +1,4 @@
 import { Revenue } from './definitions';
-import path from 'path';
 
 export const formatCurrency = (amount: number) => {
   return (amount / 100).toLocaleString('en-US', {
@@ -73,7 +72,6 @@ export const generatePagination = (currentPage: number, totalPages: number) => {
 // --- File Handling Configuration ---
 const MAX_FILE_SIZE_MB = 2;
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const UPLOAD_DIR = path.join(process.cwd(), 'public', 'customers'); // Base upload directory
 
 /**
  * Validates the uploaded image file based on existence, type, and size.

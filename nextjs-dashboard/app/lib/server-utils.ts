@@ -4,8 +4,6 @@ import fs from 'fs/promises'; // Use promises version for async/await
 import 'server-only';
 
 // --- File Handling Configuration ---
-const MAX_FILE_SIZE_MB = 2;
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const UPLOAD_DIR = path.join(process.cwd(), 'public', 'customers'); // Base upload directory
 
 /**
