@@ -5,11 +5,6 @@ const nextConfig: NextConfig = {
   // experimental: {
   //   ppr: 'incremental'
   // }
-  // env: {
-  //   AUTH_URL: process.env.VERCEL_URL
-  //     ? `https://${process.env.VERCEL_URL}/api/auth`
-  //     : process.env.AUTH_URL,
-  // },
   images: {
     remotePatterns: [
       {
