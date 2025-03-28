@@ -8,6 +8,7 @@ import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 import path from 'path';
 import fs from 'fs/promises';
+import { saveCustomerImage, validateImageFile } from './utils';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
@@ -177,12 +178,13 @@ export async function deleteInvoice(id: string, prevState: InvoiceState, formDat
 // CUSTOMER ACTIONS
 
 const CustomerFormSchema = z.object({
-    id: z.string(),
+    // id: z.string(),
     name: z.string().trim().min(3, { message: 'Please enter a customer name.' }),
     email: z.string().email({ message: 'Please enter a valid email address.' }).trim(),
 });
 
-const CreateCustomer = CustomerFormSchema.omit({ id: true });
+// const CreateCustomer = CustomerFormSchema.omit({ id: true });
+const CreateCustomer = CustomerFormSchema;
 
 export type CustomerState = {
     errors?: {
@@ -200,167 +202,127 @@ export type CustomerState = {
 
 export async function createCustomer(prevState: CustomerState, formData: FormData): Promise<CustomerState> {
 
-    // --- File Handling ---
-    const imageFile = formData.get('imageFile');
-    let savedImagePath: string | null = null; // Path relative to /public folder (e.g., /customers/image.png)
-    const MAX_FILE_SIZE_MB = 2; // Set max file size (e.g., 2MB)
-    const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+    // --- Combine all errors here ---
+    let combinedErrors: CustomerState['errors'] = {};
 
-    if (!imageFile || !(imageFile instanceof File) || imageFile.size === 0) {
-        return {
-            errors: { imageFile: ['Please add an image file.'] },
-            formData: { name: formData.get('name')?.toString(), email: formData.get('email')?.toString() },
-            success: false,
-        };
-    }
-
-    // Check MIME type
-    if (!ALLOWED_MIME_TYPES.includes(imageFile.type)) {
-        return {
-            errors: { imageFile: ['Invalid file type. Only JPEG, PNG, and WEBP are allowed.'] },
-            formData: { name: formData.get('name')?.toString(), email: formData.get('email')?.toString() },
-            success: false,
-        };
-    }
-
-    // Check file size
-    if (imageFile.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-        return {
-            errors: { imageFile: [`File is too large. Maximum size is ${MAX_FILE_SIZE_MB}MB.`] },
-            formData: { name: formData.get('name')?.toString(), email: formData.get('email')?.toString() },
-            success: false,
-        };
-    }
-
-    // 1. Extract data
+    // 1. --- Validate Text Fields ---
     const rawFormData = {
         name: formData.get('name'),
         email: formData.get('email'),
     };
-
-    // 2. Validate data
     const validatedFields = CreateCustomer.safeParse(rawFormData);
 
-    // 3. If validation fails, return errors early
-    // if (!validatedFields.success) {
-    //     return {
-    //         errors: validatedFields.error.flatten().fieldErrors,
-    //         message: 'Missing or Invalid Fields. Failed to Create Customer.',
-    //         // Include the raw form data (as strings)
-    //         formData: {
-    //             name: rawFormData.name?.toString(),
-    //             email: rawFormData.email?.toString(),
-    //             image_url: rawFormData.image_url?.toString(),
-    //         },
-    //         success: false,
-    //     }
-    // }
-
     if (!validatedFields.success) {
-        // Combine file error (if any) with Zod errors
-        // const errors = {
-        //     ...prevState.errors, // Carry over potential file error? No, generate fresh.
-        //     ...(prevState.errors?.imageFile ? { imageFile: prevState.errors.imageFile } : {}), // Carry file error if needed, or better generate fresh? Let's do fresh below
-        //     ...validatedFields.error.flatten().fieldErrors,
-        // };
-        // If file validation failed above, this won't run, handle combination carefully if needed.
-        // Re-check file validation if you want errors combined
-        const fileErrorState = { // Re-run basic file presence check to combine errors
-            ...(!imageFile || !(imageFile instanceof File) || imageFile.size === 0 ? { imageFile: ['Please select an image file.'] } : {}),
-            ...(!ALLOWED_MIME_TYPES.includes(imageFile.type) ? { imageFile: ['Invalid file type.'] } : {}),
-            ...(imageFile.size > MAX_FILE_SIZE_MB * 1024 * 1024 ? { imageFile: [`Max size is ${MAX_FILE_SIZE_MB}MB.`] } : {})
-        }
+        // Add Zod errors to the combined errors object
+        combinedErrors = {
+            ...combinedErrors,
+            ...validatedFields.error.flatten().fieldErrors,
+        };
+    }
 
+    // 2. --- Validate Image File ---
+    const imageFile = formData.get('imageFile');
+    const fileValidationErrors = validateImageFile(imageFile); // Use the util function
+
+    if (fileValidationErrors.length > 0) {
+        // Add file errors to the combined errors object
+        // Use || [] to ensure imageFile array exists before pushing
+        combinedErrors.imageFile = [...(combinedErrors.imageFile || []), ...fileValidationErrors];
+    }
+
+    // 3. --- Check if ANY validation failed (either Zod or File) ---
+    if (Object.keys(combinedErrors).length > 0) {
+        console.log("Validation Errors:", combinedErrors);
         return {
-            errors: { ...validatedFields.error.flatten().fieldErrors, ...fileErrorState },
-            message: 'Missing or Invalid Fields. Failed to Create Customer.',
-            formData: {
-                name: formData.get('name')?.toString(),
-                email: formData.get('email')?.toString(),
+            errors: combinedErrors,
+            // message: 'Missing or Invalid Fields. Please correct the errors below.',
+            formData: { // Repopulate form with raw data
+                name: rawFormData.name?.toString(),
+                email: rawFormData.email?.toString(),
             },
             success: false,
         };
     }
 
-    // 4. Prepare data for insertion
-    const { name, email } = validatedFields.data;
+    // --- At this point, we KNOW combinedErrors is empty. ---
+    // --- This IMPLICITLY means fileValidationErrors was empty. ---
+    // --- It ALSO IMPLICITLY means validatedFields.success was true. ---
 
-    // --- Save the File ---
-    try {
-        // Generate a unique filename (e.g., using timestamp or UUID) - SIMPLE VERSION: use original name + timestamp
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        // Sanitize filename - basic version: replace spaces, keep extension
-        const originalName = imageFile.name.replace(/\s+/g, '_');
-        const extension = path.extname(originalName);
-        const baseName = path.basename(originalName, extension);
-        // Basic sanitization: remove non-alphanumeric except underscore/hyphen
-        const sanitizedBaseName = baseName.replace(/[^a-zA-Z0-9_-]/g, '');
-        const filename = `${sanitizedBaseName}-${uniqueSuffix}${extension}`;
-
-
-        // Define the save path within the /public directory
-        const uploadDir = path.join(process.cwd(), 'public', 'customers');
-        const filePath = path.join(uploadDir, filename);
-
-        // Ensure the directory exists
-        await fs.mkdir(uploadDir, { recursive: true });
-
-        // Read the file content
-        const buffer = Buffer.from(await imageFile.arrayBuffer());
-
-        // Write the file
-        await fs.writeFile(filePath, buffer);
-
-        // Store the *web-accessible* path for the database
-        savedImagePath = `/customers/${filename}`; // Path relative to /public
-
-    } catch (error) {
-        console.error('Failed to save image:', error);
+    // 4. --- Type Guard for TypeScript ---
+    // Even though logically success must be true, explicitly check for TS safety.
+    if (!validatedFields.success) {
+         // This state should be logically unreachable if combinedErrors is empty
+        console.error("Internal Error: Zod validation failed but wasn't caught earlier.");
         return {
-            message: 'Failed to save customer image.',
-            errors: { imageFile: ['Could not save the uploaded image.'] },
-            formData: { name, email }, // Keep name/email if file fails to save
+            message: "An unexpected validation error occurred.",
+            formData: {
+                 name: rawFormData.name?.toString(),
+                 email: rawFormData.email?.toString(),
+            },
             success: false,
         };
     }
 
-    // 5. Insert data into the database
+    // 5. --- Prepare Data (Safe to access .data now) ---
+    const { name, email } = validatedFields.data; // NOW TypeScript is happy
+    const validImageFile = imageFile as File; // Type assertion is safe due to file validation check
+
+    // 6. --- Save the File ---
+    const saveResult = await saveCustomerImage(validImageFile);
+
+    if (!saveResult.success) {
+        return {
+            // Add save errors to imageFile field
+            errors: { imageFile: saveResult.errors },
+            formData: { name, email }, // Keep validated name/email
+            success: false,
+        };
+    }
+    const savedImagePath = saveResult.path;
+
+    // 7. --- Insert data into the database ---
     try {
         await sql`
             INSERT INTO customers (name, email, image_url)
             VALUES (${name}, ${email}, ${savedImagePath})
         `;
-    } catch (error: any) { // Catch any error for DB insertion
+    } catch (error: unknown) {
         console.error('Database Error:', error);
-        // Unique constraint violation check remains useful
-        if (error?.code === '23505' && error?.constraint?.includes('customers_email_key')) {
-            return {
-                message: 'Database Error: This email address is already registered.',
-                errors: { email: ['Email already exists.'] },
-                formData: { name, email }, // Pass back original valid name/email
-                success: false,
-            };
+
+        if (typeof error === 'object' && error !== null && 'code' in error) {
+            const dbError = error as { code: string; message?: string; constraint_name?: string };
+            if (dbError.code === '23505') { // Unique violation
+                 if (dbError.constraint_name === 'customers_email_key' || (dbError.message && dbError.message.includes('customers_email_key'))) {
+                    // Return field-specific error for unique email
+                    return {
+                        errors: { email: ['Email already exists.'] },
+                        formData: { name, email },
+                        success: false,
+                    };
+                }
+                // Potentially handle other unique constraints here
+            }
         }
-        // Generic database error
+
+        // Generic DB error message (non-field specific)
         return {
-            message: 'Database Error: Failed to Create Customer record.',
-            formData: { name, email },
+            message: 'Database Error: Failed to create customer record. Please try again.',
+            formData: { name, email }, // Keep data for retry
             success: false,
         };
     }
 
-
-    // 6. Prerender and revalidate cache for customers page
+    // 8. --- Revalidate and Return Success ---
     revalidatePath('/dashboard/customers');
-    // redirect('/dashboard/customers');
+    revalidatePath('/dashboard/invoices');
 
     return {
-        message: 'Customer  created successfully!',
+        message: 'Customer created successfully!',
         success: true,
-        errors: {}, // Clear any previous errors
-        formData: null // Clear previous form data
+        errors: {},
+        formData: null
     };
-};
+}
 
 
 // AUTH ACTIONS
