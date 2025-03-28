@@ -12,6 +12,7 @@ import { createCustomer, CustomerState } from '@/app/lib/actions'; // Import act
 import { useActionState, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SuccessFeedback } from '@/app/ui/success-feedback'; // Assuming feedback.tsx is in ui folder
+import Image from 'next/image';
 
 export default function CreateCustomerForm() {
     // Initial state for the customer form
@@ -143,7 +144,7 @@ export default function CreateCustomerForm() {
                             <div className="relative mt-2 flex items-center gap-4">
                                 {/* Optional Image Preview */}
                                 {filePreview ? (
-                                    <img src={filePreview} alt="Selected preview" width={48} height={48} className="h-12 w-12 rounded-full object-cover" />
+                                    <Image src={filePreview} alt="Selected preview" width={48} height={48} className="h-12 w-12 rounded-full object-cover" />
                                 ) : (
                                     <PhotoIcon className="h-12 w-12 text-gray-400" aria-hidden="true" />
                                 )}
