@@ -17,6 +17,9 @@ const nextConfig: NextConfig = {
       // Add other patterns here if you load images from other external domains
     ],
   },
+  serverActions: {
+    bodySizeLimit: '4mb', // Increase limit (e.g., to 4MB to comfortably fit your 2MB file limit + overhead)
+  },
 };
 
 export default nextConfig;
