@@ -2,9 +2,12 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
-  // experimental: {
-  //   ppr: 'incremental'
-  // }
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '4mb',
+    },
+    //   ppr: 'incremental'
+  },
   images: {
     remotePatterns: [
       {
@@ -16,9 +19,6 @@ const nextConfig: NextConfig = {
       },
       // Add other patterns here if you load images from other external domains
     ],
-  },
-  serverActions: {
-    bodySizeLimit: '4mb', // Increase limit (e.g., to 4MB to comfortably fit your 2MB file limit + overhead)
   },
 };
 
