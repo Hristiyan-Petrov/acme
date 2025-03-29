@@ -16,8 +16,8 @@ export async function fetchRevenue() {
     // Artificially delay a response for demo purposes.
     // Don't do this in production :)
 
-    console.log('Fetching revenue data...');
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    // console.log('Fetching revenue data...');
+    // await new Promise((resolve) => setTimeout(resolve, 3000));
 
     const data = await sql<Revenue[]>`SELECT * FROM revenue`;
 
@@ -65,10 +65,9 @@ export async function fetchCardData() {
     const data = await Promise.all([
       invoiceCountPromise,
       customerCountPromise,
-      ,
     ]);
-    
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+
+    // await new Promise((resolve) => setTimeout(resolve, 5000));
 
     const data2 = await invoiceStatusPromise;
 
@@ -128,6 +127,19 @@ export async function fetchFilteredInvoices(
 }
 
 export async function fetchInvoicesPages(query: string) {
+  const invoicesCache = new Map<string, { totalPages: number; timestamp: number }>();
+  const CACHE_TTL = 60 * 1000; // 60 seconds * 1000 = in milliseconds
+
+  const cacheKey = `fetchInvoicesPages:${query}`;
+  const now = Date.now();
+
+  if (invoicesCache.has(cacheKey)) {
+    const { totalPages, timestamp } = invoicesCache.get(cacheKey)!;
+    if (now - timestamp < CACHE_TTL) {
+      return totalPages;
+    }
+  }
+  
   try {
     const data = await sql`SELECT COUNT(*)
     FROM invoices
