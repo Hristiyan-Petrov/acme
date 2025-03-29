@@ -323,9 +323,13 @@ export async function authenticate(
 ): Promise<AuthErrorMessage> {
     try {
         const redirectTo = formData.get('redirectTo')?.toString();
+        console.log('Pre timeout');
+        // await new Promise((resolve) => setTimeout(resolve, 3000));
+        console.log('Pre signIn');
         await signIn('credentials', formData, {
             redirectTo: redirectTo || '/dashboard'
         });
+        console.log('Post timeout');
         return undefined;
     } catch (error) {
         if (error instanceof AuthError) {

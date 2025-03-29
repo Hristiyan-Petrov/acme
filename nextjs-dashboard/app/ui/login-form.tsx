@@ -12,20 +12,28 @@ import { Button } from './button';
 // import { useSearchParams } from 'next/navigation';
 import { useActionState, useState } from 'react';
 import { authenticate, AuthErrorMessage } from '../lib/actions';
+import { SpinnerIcon } from './spinner';
+
 
 export default function LoginForm() {
-    // const searhParams = useSearchParams();
-    // const callbackUrl = searhParams.get('callbackUrl') || '/dashboard';
-    const [errorMessage, formAction, isPending] = useActionState<AuthErrorMessage | undefined, FormData>(authenticate, undefined);
+    // const searchParams = useSearchParams(); // Corrected variable name
+    // const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+
     const [email, setEmail] = useState('');
+    const [errorMessage, formAction, isPending] = useActionState<AuthErrorMessage | undefined, FormData>(
+        authenticate,
+        undefined,
+    );
 
     return (
+        // Pass formAction directly to the form's action prop
         <form action={formAction} className="space-y-3">
             <div className="flex-1 rounded-lg bg-gray-50 px-6 pb-4 pt-8">
                 <h1 className={`${lusitana.className} mb-3 text-2xl`}>
                     Please log in to continue.
                 </h1>
                 <div className="w-full">
+                    {/* Email Input */}
                     <div>
                         <label
                             className="mb-3 mt-5 block text-xs font-medium text-gray-900"
@@ -41,12 +49,14 @@ export default function LoginForm() {
                                 name="email"
                                 placeholder="Enter your email address"
                                 required
+                                disabled={isPending}
                                 value={email}
                                 onChange={e => setEmail(e.target.value)}
                             />
                             <AtSymbolIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
                         </div>
                     </div>
+                    {/* Password Input */}
                     <div className="mt-4">
                         <label
                             className="mb-3 mt-5 block text-xs font-medium text-gray-900"
@@ -63,19 +73,39 @@ export default function LoginForm() {
                                 placeholder="Enter password"
                                 required
                                 minLength={6}
+                                disabled={isPending}
                             />
                             <KeyIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
                         </div>
                     </div>
                 </div>
-                {/* <input type="hidden" name='redirectTo' value={callbackUrl} /> */}
-                <Button className="mt-4 w-full" aria-disabled={isPending}>
-                    Log in <ArrowRightIcon className="ml-auto h-5 w-5 text-gray-50" />
+
+                {/* Updated Login Button */}
+                <Button
+                    className={`mt-4 w-full ${isPending ? 'opacity-70 cursor-not-allowed' : ''}`} // <-- Add styles for pending state
+                    aria-disabled={isPending}
+                    type="submit"
+                    disabled={isPending}
+                >
+                    {isPending ? (
+                        <>
+                            <SpinnerIcon className="mr-2 h-5 w-5 animate-spin" /> {/* <-- Show Spinner */}
+                            Logging in...
+                        </>
+                    ) : (
+                        <>
+                            Log in <ArrowRightIcon className="ml-auto h-5 w-5 text-gray-50" />
+                        </>
+                    )}
                 </Button>
 
                 {/* Display error message */}
-                <div className="flex h-8 items-end space-x-1">
-                    {errorMessage && (
+                <div
+                    className="flex h-8 items-end space-x-1"
+                    aria-live="polite"
+                    aria-atomic="true"
+                >
+                    {errorMessage && !isPending && (
                         <>
                             <ExclamationCircleIcon className="h-5 w-5 text-red-500" />
                             <p className="text-sm text-red-500">{errorMessage}</p>
@@ -85,4 +115,4 @@ export default function LoginForm() {
             </div>
         </form>
     );
-}
+}                                
